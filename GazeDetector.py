@@ -1,15 +1,16 @@
 import cv2
 import dlib
+import math
 import numpy as np
-from itertools import chain
+from itertools import chain, product
 
 
 class GazeDetector:
     LEFT_EYE = 0
     RIGHT_EYE = 1
 
-    def __init__(self):
-        self.video_feed = cv2.VideoCapture(0)
+    def __init__(self, external_camera=False):
+        self.video_feed = cv2.VideoCapture(int(external_camera))
 
         self.detector = dlib.get_frontal_face_detector()
         self.predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
@@ -54,13 +55,13 @@ class GazeDetector:
         img_features = self._build_feature_vector_from_points(facial_points)
         eye_points = img_features[:24]
 
-        left_eye_img = self._get_eye_image(img, eye_points, self.LEFT_EYE)
-        # img_features[24:26] = self.detect_eye_center(left_eye_img)
-        cv2.imwrite('left_eye.png', left_eye_img)
+        left_eye_img, left_eye_corner = self._get_eye_image(img, eye_points, self.LEFT_EYE)
+        img_features[24:26] = self._detect_eye_center(left_eye_img, left_eye_corner, debug=True, debug_side='left')
 
-        right_eye_img = self._get_eye_image(img, eye_points, self.RIGHT_EYE)
-        # img_features[26:28] = self.detect_eye_center(right_eye_img)
-        cv2.imwrite('right_eye.png', right_eye_img)
+        right_eye_img, right_eye_corner = self._get_eye_image(img, eye_points, self.RIGHT_EYE)
+        img_features[26:28] = self._detect_eye_center(right_eye_img, right_eye_corner, debug=True, debug_side='right')
+
+        img_features[28:] = self._calculate_face_angles(facial_points)
 
         all_points = list(facial_points.parts())
 
@@ -78,7 +79,7 @@ class GazeDetector:
         :param image: an image in the form of an ndarray of shape (l, w)
         :param eye_coordinates: a list of coordinates of alternating x and y of points from the user's eye
         :param side: constant LEFT_EYE or RIGHT_EYE (0 or 1) referring to which eye you are finding
-        :return: an image in the form of a 2D ndarray of just the pixels around the user's eye
+        :return: an image as an 2D ndarray of just the pixels around the user's eye, (x, y) tuple of corner of eye
         """
         first_index = side * 12
         end_index = first_index + 12
@@ -91,7 +92,7 @@ class GazeDetector:
         y_min = y_vals.min() - 2
         y_max = y_vals.max() + 2
 
-        return image[y_min: y_max, x_min: x_max]
+        return image[y_min: y_max, x_min: x_max], (x_min, y_min)
 
     @staticmethod
     def _build_feature_vector_from_points(face_points):
@@ -108,6 +109,43 @@ class GazeDetector:
         vector = np.zeros(30)
         vector[0:24] = list(chain(*[(pt.x, pt.y) for pt in [face_points.part(n) for n in range(36, 48)]]))
         return vector
+
+    @staticmethod
+    def _calculate_face_angles(face_points):
+        """
+        Calculate the angles of the face from the 68 points
+        theta = rotation about vertical axis through center of head
+            - assume nose length is constant/proportional to face width
+        alpha = rotation about x axis running front to back through face (side-to-side head tilt)
+        phi = rotation about y axis running horizontally through sides of head (as in nodding)
+        :param face_points: dlib full_object_detection object
+        :return: list of 2 facial angles
+        """
+
+        # first calculate theta
+        left_cheek = face_points.part(1)
+        right_cheek = face_points.part(16)
+        nose_center = face_points.part(33)
+
+        face_width = right_cheek.x - left_cheek.x
+        nose_length = face_width / 4.0
+
+        true_center_nose_x = left_cheek.x + face_width / 2.0
+        nose_x_offset = nose_center.x - true_center_nose_x
+        try:
+            angle = math.atan(nose_length / abs(nose_x_offset))
+            theta = (90 - math.degrees(angle)) * np.sign(nose_x_offset)
+        except ZeroDivisionError:
+            theta = 0.0
+
+        # now calculate alpha
+        vertical_cheek_offset = right_cheek.y - left_cheek.y
+        angle = math.atan(abs(vertical_cheek_offset) / face_width)
+        alpha = math.degrees(angle) * np.sign(vertical_cheek_offset)
+
+        # TODO: determine how to calculate phi based on the points and expand vector to 31
+
+        return [theta, alpha]
 
     @staticmethod
     def _select_main_face_rectangle(rectangles):
@@ -130,13 +168,54 @@ class GazeDetector:
 
         return grayscale
 
-    def detect_eye_center(self, eye_image):
+    def _detect_eye_center(self, eye_image, eye_corner, debug=False, debug_side='left'):
         """
         Given an image of an eye, identify the center point of the pupil using Timm-Barth algorithm
         :param eye_image: a 2D ndarray image of a user's eye
         :return: an x and y coordinate for the center of the eye in list form
         """
-        raise NotImplementedError
+        img_deriv_wrt_x = cv2.Sobel(eye_image, cv2.CV_64F, 1, 0, ksize=3)
+        img_deriv_wrt_y = cv2.Sobel(eye_image, cv2.CV_64F, 0, 1, ksize=3)
+
+        gradient_mags = cv2.magnitude(img_deriv_wrt_x, img_deriv_wrt_y)
+        unit_gradient_x = np.nan_to_num(img_deriv_wrt_x / gradient_mags)
+        unit_gradient_y = np.nan_to_num(img_deriv_wrt_y / gradient_mags)
+
+        blurred = cv2.GaussianBlur(eye_image, (5, 5), 0, 0)
+        pixel_weights = np.invert(blurred)
+        image_rows, image_cols = eye_image.shape
+
+        objective_values = np.zeros((image_rows, image_cols))
+
+        for x_i, y_i in product(range(image_rows), range(image_cols)):
+            row_values = np.arange(image_cols * 1.0) - y_i
+            col_values = np.arange(image_rows * 1.0) - x_i
+            displacement_x, displacement_y = np.meshgrid(row_values, col_values)
+            disp_mags = cv2.magnitude(displacement_x, displacement_y)
+            unit_disp_x = np.nan_to_num(displacement_x / disp_mags)
+            unit_disp_y = np.nan_to_num(displacement_y / disp_mags)
+
+            pixel_objective = pixel_weights * np.square(unit_disp_x * unit_gradient_x + unit_disp_y * unit_gradient_y)
+            objective = np.sum(pixel_objective) / eye_image.size
+            objective_values[x_i, y_i] = objective
+
+        # set edges to 0 to disqualify them from consideration (function is always positive)
+        objective_values[0, :] = 0
+        objective_values[-1, :] = 0
+        objective_values[:, 0] = 0
+        objective_values[0, -1] = 0
+
+        max_locs = np.unravel_index(objective_values.argmax(), objective_values.shape)
+
+        if debug:
+            # put red dot in center of eye and save to file
+            new_eye = cv2.cvtColor(eye_image, cv2.COLOR_GRAY2RGB)
+            new_eye[max_locs[0]][max_locs[1]] = [0, 0, 255]
+            cv2.imwrite('output_{side}.png'.format(side=debug_side), new_eye)
+
+        center_pixels = tuple(map(lambda x, y: x + y, max_locs, eye_corner))
+
+        return center_pixels
 
     def calculate_location_probabilities_from_features(self, features):
         """
@@ -147,7 +226,10 @@ class GazeDetector:
         raise NotImplementedError
 
     def train_location_classifier(self, data):
-
+        """
+        Train location classifier using data
+        :param data: a ndarray of shape(N, 30) of N rows of numerical features
+        """
         raise NotImplementedError
 
 
