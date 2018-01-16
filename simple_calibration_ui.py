@@ -32,45 +32,30 @@ class Example(QGraphicsView):
     def initView(self):
         ag = QDesktopWidget().availableGeometry()
         sg = QDesktopWidget().screenGeometry()
-
-        widget = self.geometry()
-        x = ag.width()# - widget.width()
-        y = ag.height()# - sg.height() - widget.height()
-        print("Available: ", ag.width(), ag.height())
-        print("Screen: ", sg.width(), sg.height())
-        print("Widget: ", widget.width(), widget.height())
-
-        screen = app.primaryScreen()
-        size = screen.size()
-        rect = screen.availableGeometry()
-        self.resize(rect.width(), rect.height())
-        self.setGeometry(0, 0, rect.width(), rect.height())
+        x = ag.width()
+        y = ag.height()
 
         self.ball = Ball()
 
         self.anim = QPropertyAnimation(self.ball, b'pos')
-        self.anim.setDuration(20000)
+        self.anim.setDuration(10000)
         self.anim.setStartValue(QPointF(0, 0))
 
-        self.anim.setKeyValueAt(0.2, QPointF(x / 2, -y / 2))
-        self.anim.setKeyValueAt(0.4, QPointF(x / 2, y / 2))
-        self.anim.setKeyValueAt(0.6, QPointF(-x / 2, y / 2))
-        self.anim.setKeyValueAt(0.8, QPointF(-x / 2, -y / 2))
+        self.anim.setKeyValueAt(0.25, QPointF(x, 0))
+        self.anim.setKeyValueAt(0.5, QPointF(x, y))
+        self.anim.setKeyValueAt(0.75, QPointF(0, y))
 
         self.anim.setEndValue(QPointF(0, 0))
 
         self.scene = QGraphicsScene(self)
-        self.scene.setSceneRect(0, 0, 150, 150)
+        self.scene.setSceneRect(128, 128, x-128, y-128)
         self.scene.addItem(self.ball.pixmap_item)
         self.setScene(self.scene)
 
         self.setWindowTitle("Calibration")
         self.setRenderHint(QPainter.Antialiasing)
-        screen = app.primaryScreen()
-        size = screen.size()
-        rect = screen.availableGeometry()
-        self.resize(rect.width(), rect.height())
-        self.setGeometry(0, 0, rect.width(), rect.height())
+        #self.resize(x, y)
+        #self.setGeometry(0, 0, x, y)
 
         self.anim.start()
         self.showFullScreen()
