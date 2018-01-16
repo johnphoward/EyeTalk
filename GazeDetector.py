@@ -47,6 +47,9 @@ class GazeDetector:
         :param img: an already-preprocessed image in the form of an ndarray of shape (l, w)
         :return: a ndarray of shape(30) full of numerical features
         """
+
+        cv2.imwrite('save_frame.png', img)
+
         rectangles = self.detector(img)
         rect = self._select_main_face_rectangle(rectangles)
 
