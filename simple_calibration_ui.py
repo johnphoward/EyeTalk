@@ -1,15 +1,11 @@
 from PyQt5.QtWidgets import (QApplication, QGraphicsView,
         QGraphicsPixmapItem, QGraphicsScene, QDesktopWidget)
 from PyQt5.QtGui import QPainter, QPixmap
-from PyQt5.QtCore import (QObject, QPointF,
+from PyQt5.QtCore import (QObject, QPointF, QTimer,
         QPropertyAnimation, pyqtProperty)
 import sys
-import cv2
-import collections
-import math
+from GazeDetector import GazeDetector
 import pyautogui
-import os
-import time
 
 class Ball(QObject):
     def __init__(self):
@@ -32,23 +28,25 @@ class Example(QGraphicsView):
     def initView(self):
         ag = QDesktopWidget().availableGeometry()
         sg = QDesktopWidget().screenGeometry()
-        x = ag.width()
-        y = ag.height()
+        self.screen_width = ag.width()
+        self.screen_height = ag.height()
 
         self.ball = Ball()
+        self.ball_width = self.ball.pixmap_item.boundingRect().size().width()
+        self.ball_height = self.ball.pixmap_item.boundingRect().size().height()
 
         self.anim = QPropertyAnimation(self.ball, b'pos')
         self.anim.setDuration(10000)
         self.anim.setStartValue(QPointF(0, 0))
 
-        self.anim.setKeyValueAt(0.25, QPointF(x, 0))
-        self.anim.setKeyValueAt(0.5, QPointF(x, y))
-        self.anim.setKeyValueAt(0.75, QPointF(0, y))
+        self.anim.setKeyValueAt(0.25, QPointF(self.screen_width - self.ball_width, 0))
+        self.anim.setKeyValueAt(0.5, QPointF(self.screen_width - self.ball_width, self.screen_height - self.ball_height))
+        self.anim.setKeyValueAt(0.75, QPointF(0, self.screen_height - self.ball_height))
 
         self.anim.setEndValue(QPointF(0, 0))
 
         self.scene = QGraphicsScene(self)
-        self.scene.setSceneRect(128, 128, x-128, y-128)
+        self.scene.setSceneRect(0, 0, self.screen_width, self.screen_height)
         self.scene.addItem(self.ball.pixmap_item)
         self.setScene(self.scene)
 
@@ -59,6 +57,15 @@ class Example(QGraphicsView):
 
         self.anim.start()
         self.showFullScreen()
+        self.gaze = GazeDetector()
+
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.sample)
+        self.timer.start(1000)
+
+    def sample(self):
+        self.gaze.sample()
+        print(self.ball.pixmap_item.scenePos().x(), self.ball.pixmap_item.scenePos().y())
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
