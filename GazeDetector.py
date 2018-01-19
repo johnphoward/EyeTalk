@@ -41,6 +41,12 @@ class GazeDetector:
 
         return self.extract_features(img)
 
+    @staticmethod
+    def sample_features_mock():
+        import time
+        time.sleep(0.25)
+        return np.random.rand(30)
+
     def extract_features(self, img):
         """
         Given an image, find all of the features that we need to identify the location of the user's gaze

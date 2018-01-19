@@ -5,7 +5,7 @@ from PyQt5.QtCore import (QObject, QPointF, QTimer,
         QPropertyAnimation, pyqtProperty)
 import sys
 from GazeDetector import GazeDetector
-import pyautogui
+from multiprocessing import Process, Queue
 
 class Ball(QObject):
     def __init__(self):
@@ -58,14 +58,34 @@ class Example(QGraphicsView):
         self.anim.start()
         self.showFullScreen()
         self.gaze = GazeDetector()
-
+        #
         self.timer = QTimer(self)
-        self.timer.timeout.connect(self.sample)
-        self.timer.start(1000)
+        self.timer.timeout.connect(self.sample_start)
+        self.timer.start(2000)
 
-    def sample(self):
-        self.gaze.sample()
-        print(self.ball.pixmap_item.scenePos().x(), self.ball.pixmap_item.scenePos().y())
+        self.t2 = QTimer(self)
+        self.t2.timeout.connect(self.pull_data)
+        self.t2.start(50)
+
+        self.data_queue = Queue()
+
+    def sample_start(self):
+        current_pos = self.ball.pixmap_item.scenePos()
+        p = Process(target=self.sample_features, args=(self.gaze, self.data_queue, current_pos))
+        p.start()
+
+    def sample_features(self, detector, queue, pos):
+        x, y = pos.x(), pos.y()
+        features = detector.sample_features_mock()
+        queue.put(features)
+
+    def pull_data(self):
+        try:
+            data = self.data_queue.get(timeout=0.01)
+            y = 1
+        except :
+            pass
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
