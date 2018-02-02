@@ -3,6 +3,9 @@ import dlib
 import math
 import numpy as np
 from itertools import chain, product
+from keras.models import Sequential
+from keras.layers import Dense, Activation
+from keras.optimizers import SGD
 
 
 class GazeDetector:
@@ -15,6 +18,17 @@ class GazeDetector:
         self.detector = dlib.get_frontal_face_detector()
         self.predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
 
+        self.neural_network = None
+        self.init_model()
+
+    def init_model(self):
+        model = Sequential()
+        model.add(Dense(20, input_dim=30, kernel_initializer='uniform', activation='relu'))
+        model.add(Dense(20, kernel_initializer='uniform', activation='relu'))
+        model.add(Activation("softmax"))
+        model.compile(loss='categorical_crossentropy', optimizer=SGD(lr=0.01))
+        self.neural_network = model
+
     def sample(self):
         """
         Read an image from the video capture device and determine where the user is looking
@@ -26,9 +40,9 @@ class GazeDetector:
 
         features = self.extract_features(img)
 
-        # probabilities = self.calculate_location_probabilities_from_features(features)
+        probabilities = self.calculate_location_probabilities_from_features(features)
 
-        # return probabilities
+        return probabilities
 
     def sample_features(self):
         """
@@ -223,14 +237,23 @@ class GazeDetector:
         :param features: a ndarray of shape(30) full of numerical features
         :return: a ndarray of probabilities for each label in the UI
         """
-        raise NotImplementedError
 
-    def train_location_classifier(self, data):
+        prediction_vals = self.neural_network.predict(features)
+        return prediction_vals
+
+    def train_location_classifier(self, data, num_epochs=128):
         """
         Train location classifier using data
         :param data: a ndarray of shape(N, 30) of N rows of numerical features
+        :param num_epochs: an integer number for how many iterations through all the data the training will do
         """
-        raise NotImplementedError
+
+        # split data into X and Y (data and labels)
+
+        training_data = None
+        training_labels = None
+
+        self.neural_network.fit(training_data, training_labels, num_epochs, batch_size=128)
 
 
 if __name__ == '__main__':
