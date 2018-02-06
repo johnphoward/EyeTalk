@@ -41,7 +41,7 @@
 #include "findEyeCenter.h"
 #include "findEyeCorner.h"
 
-#define DEBUG 0
+#define DEBUG 1
 #define DEBUG_TB 1
 #define MACRO_START (begin = std::chrono::steady_clock::now())
 #define MACRO_END (end = std::chrono::steady_clock::now())

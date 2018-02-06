@@ -4,4 +4,5 @@ __pycache__/**
 *.pyc
 *.png
 **/build/**
+**/eyefinder_cpp/shape*
 python_dependencies/**

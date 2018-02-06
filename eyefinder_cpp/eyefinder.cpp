@@ -69,9 +69,13 @@ int _EF_::EyeFinder::start(void) {
     dlib::deserialize("shape_predictor_68_face_landmarks.dat") >> pose_model;
 
     // Grab and process frames until the main window is closed by the user.
+#if DEBUG
     int i = 0;
     cv::namedWindow("LALALA", cv::WINDOW_AUTOSIZE);
-    while (i++ < 200) {
+    while (i++ < 100) {
+#else
+    while (true) {
+#endif
       // Grab a frame
       cv::Mat temp;
       if (!cap.read(temp)) {
@@ -140,7 +144,8 @@ PRIVATE
 // *****
 // setMinAndMax
 std::tuple<long, long, long, long> _EF_::EyeFinder::setMinAndMax(
-    int start, int end, const std::vector<dlib::full_object_detection> &shapes) {
+    int start, int end,
+    const std::vector<dlib::full_object_detection> &shapes) {
   // min_x, min_y, max_x, max_y
   std::tuple<long, long, long, long> tp{LONG_MAX, LONG_MAX, LONG_MIN, LONG_MIN};
 
