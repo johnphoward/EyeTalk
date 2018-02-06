@@ -77,15 +77,19 @@ class Example(QGraphicsView):
 
         anim = QPropertyAnimation(self.ball, b'pos')
         anim.setDuration(10000)
-        anim.setStartValue(QPointF(0, 0))
+
+        w = self.screen_width / 4
+        h = self.screen_height / 4
+
+        anim.setStartValue(QPointF(w, h))
 
         # TODO: do better at this - flush out where we want the ball to go
 
-        anim.setKeyValueAt(0.25, QPointF(self.screen_width - self.ball_width, 0))
-        anim.setKeyValueAt(0.5, QPointF(self.screen_width - self.ball_width, self.screen_height - self.ball_height))
-        anim.setKeyValueAt(0.75, QPointF(0, self.screen_height - self.ball_height))
+        anim.setKeyValueAt(0.25, QPointF(3 * w - self.ball_width, h))
+        anim.setKeyValueAt(0.5, QPointF(3 * w - self.ball_width, 3 * h - self.ball_height))
+        anim.setKeyValueAt(0.75, QPointF(w, 3 * h - self.ball_height))
 
-        anim.setEndValue(QPointF(0, 0))
+        anim.setEndValue(QPointF(w, h))
 
         self.anim = anim
 
@@ -96,11 +100,11 @@ class Example(QGraphicsView):
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.sample_start)
-        self.timer.start(500)
+        self.timer.start(5)
 
         self.t2 = QTimer(self)
         self.t2.timeout.connect(self.pull_data)
-        self.t2.start(50)
+        self.t2.start(5)
 
         self.t3 = QTimer(self)
         self.t3.timeout.connect(self.endBallAnimation)
@@ -156,7 +160,26 @@ class Example(QGraphicsView):
 
         # TODO: Implement data send to database
 
-        print(self.data)
+        for x, y in self.data:
+            print(x)
+            print(self.test_mapping(y))
+            print()
+
+    def test_mapping(self, label_data):
+        x, y, width, height = label_data
+        x_pct = x * 1.0 / width
+        y_pct = y * 1.0 / height
+
+        if x_pct < 0.5:
+            if y_pct < 0.5:
+                return 1
+            else:
+                return 3
+        else:
+            if y_pct < 0.5:
+                return 2
+            else:
+                return 4
 
     def sample_start(self):
         current_pos = self.ball.pixmap_item.scenePos()
