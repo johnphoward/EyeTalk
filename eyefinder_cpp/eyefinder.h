@@ -61,12 +61,14 @@ namespace _EF_ {
           sem_t *sem;
           const char *sem_name = "/capstone";
 
+          long frame_id = 0;
+
           int shmid;
           char *shared_memory;
           const key_t key = 123456;
           const unsigned int shared_size =  2 * 30 * sizeof(long);
 
-          // std::vector<std::pair<long, long>> facial_features_vec;
+          // std::vector<long> facial_features_vec;
           // change to python list later with boost, look below in start()
 
           std::tuple<long, long, long, long>
@@ -75,16 +77,14 @@ namespace _EF_ {
           cv::Rect getROI(std::tuple<long, long, long, long> &tp, cv::Mat frame);
 
           void
-          preCalculationPoints(std::vector<std::pair<long, long>> &facial_features_vec,
+          preCalculationPoints(std::vector<long> &facial_features_vec,
                                const std::vector<dlib::full_object_detection> &shapes);
           void calculateFaceAngles(void);
           void calculatePupils(cv::Mat src,
-                               std::vector<std::pair<long, long>> &facial_features_vec);
+                               std::vector<long> &facial_features_vec);
           void writeFacialFeaturesToShm(
-              const std::vector<std::pair<long, long>> &facial_features_vec);
+              const std::vector<long> &facial_features_vec);
           void writeBadFacialFeaturesToShm(void);
        };
-// Won't be able to work since EyeFinder is Final. Good!
-// struct DerivedEyeFinder : EyeFinder {};
 }; // namespace _EF_
 #endif

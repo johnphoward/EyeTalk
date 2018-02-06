@@ -1,57 +1,11 @@
-// The contents of this file are in the public domain. See
-// LICENSE_FOR_EXAMPLE_PROGRAMS.txt
-/*
-
-    This example program shows how to find frontal human faces in an image and
-    estimate their pose.  The pose takes the form of 68 landmarks.  These are
-    points on the face such as the corners of the mouth, along the eyebrows, on
-    the eyes, and so forth.
-
-
-    This example is essentially just a version of the
-   face_landmark_detection_ex.cpp example modified to use OpenCV's VideoCapture
-   object to read from a camera instead of files.
-
-
-    Finally, note that the face detector is fastest when compiled with at least
-    SSE2 instructions enabled.  So if you are using a PC with an Intel or AMD
-    chip then you should enable at least SSE2 instructions.  If you are using
-    cmake to compile this program you can enable them by using one of the
-    following commands when you create the build project:
-        cmake path_to_dlib_root/examples -DUSE_SSE2_INSTRUCTIONS=ON
-        cmake path_to_dlib_root/examples -DUSE_SSE4_INSTRUCTIONS=ON
-        cmake path_to_dlib_root/examples -DUSE_AVX_INSTRUCTIONS=ON
-    This will set the appropriate compiler options for GCC, clang, Visual
-    Studio, or the Intel compiler.  If you are using another compiler then you
-    need to consult your compiler's manual to determine how to enable these
-    instructions.  Note that AVX is the fastest but requires a CPU from at least
-    2011.  SSE4 is the next fastest and is supported by most current machines.
-*/
-
 #include "eyefinder.h"
 
+// ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** *****
+// *****
+// ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** *****
+// *****
 /*
-Art by Herman Hiddema
-            _
-           / )
-        ,-(,' ,---.
-       (,-.\,' `  _)-._
-          ,' `(_)_)  ,-`--.
-         /          (      )
-        /            `-.,-'|
-       /                |  /
-       |               ,^ /
-      /                   |
-      |                   /
-     /       PUBLIC      /
-     |                   |
-     |                   |
-    /                    \
-  ,.|                    |
-(`\ |                    |
-(\  |   --.      /  \_   |
- (__(   ___)-.   | '' )  /)
-hh   `---...\\\--(__))/-'-'
+PUBLIC
 */
 
 _EF_::EyeFinder::EyeFinder(void) : cap(0) {
@@ -128,12 +82,6 @@ int _EF_::EyeFinder::start(void) {
       cv::resize(temp, temp, cv::Size(), 0.5, 0.5);
       cv::cvtColor(temp, temp, CV_BGR2GRAY);
 
-      // Turn OpenCV's Mat into something dlib can deal with.  Note that this
-      // just wraps the Mat object, it doesn't copy anything.  So cimg is only
-      // valid as long as temp is valid.  Also don't do anything to temp that
-      // would cause it to reallocate the memory which stores the image as that
-      // will make cimg contain dangling pointers.  This basically means you
-      // shouldn't modify temp while using cimg.
       dlib::cv_image<dlib::uint8> cimg(temp);
 
       // Detect faces
@@ -162,7 +110,7 @@ int _EF_::EyeFinder::start(void) {
         roi_l_mat = temp(roi_l);
         roi_r_mat = temp(roi_r);
 
-        std::vector<std::pair<long, long>> facial_features_vec;
+        std::vector<long> facial_features_vec;
 
         // Left eye + Right eye points
         preCalculationPoints(facial_features_vec, shapes);
@@ -197,49 +145,10 @@ int _EF_::EyeFinder::start(void) {
 
 // ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** *****
 // *****
-
 // ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** *****
 // *****
-// ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** *****
-// *****
-
-// ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** *****
-// *****
-// ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** *****
-// *****
-// ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** *****
-// *****
-
-// ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** *****
-// *****
-// ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** *****
-// *****
-
-// ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** ***** *****
-// *****
-
 /*
-Art by Herman Hiddema
-            _
-           / )
-        ,-(,' ,---.
-       (,-.\,' `  _)-._
-          ,' `(_)_)  ,-`--.
-         /          (      )
-        /            `-.,-'|
-       /                |  /
-       |               ,^ /
-      /                   |
-      |                   /
-     /       PRIVATE     /
-     |                   |
-     |                   |
-    /                    \
-  ,.|                    |
-(`\ |                    |
-(\  |   --.      /  \_   |
- (__(   ___)-.   | '' )  /)
-hh   `---...\\\--(__))/-'-'
+PRIVATE
 */
 
 // *****
@@ -293,12 +202,13 @@ cv::Rect _EF_::EyeFinder::getROI(std::tuple<long, long, long, long> &tp,
 //  0-11 = x, y coordinates of left eye points
 //  12-23 = x, y coordinates of right eye points
 void _EF_::EyeFinder::preCalculationPoints(
-    std::vector<std::pair<long, long>> &facial_features_vec,
+    std::vector<long> &facial_features_vec,
     const std::vector<dlib::full_object_detection> &shapes) {
 
   for (int i = 36; i <= 47; ++i) {
     auto shp = shapes[0].part(i);
-    facial_features_vec.push_back(std::make_pair(shp.x(), shp.y()));
+    facial_features_vec.push_back(shp.x());
+    facial_features_vec.push_back(shp.y());
   }
 }
 
@@ -308,7 +218,7 @@ void _EF_::EyeFinder::calculateFaceAngles(void) {usleep(100);}
 
 // *****
 // calculatePupils() a.k.a. Timm-Barth Algorithm
-void _EF_::EyeFinder::calculatePupils(cv::Mat src, std::vector<std::pair<long, long>> &facial_features_vec) {
+void _EF_::EyeFinder::calculatePupils(cv::Mat src, std::vector<long> &facial_features_vec) {
 
   cv::Mat src_blur, src_blur_inv;
   int scale = 1;
@@ -371,7 +281,8 @@ void _EF_::EyeFinder::calculatePupils(cv::Mat src, std::vector<std::pair<long, l
     }
   }
 
-  facial_features_vec.push_back(std::make_pair((long)max_r, (long)max_c));
+  facial_features_vec.push_back((long)max_r);
+  facial_features_vec.push_back((long)max_c);
 }
 
 // *****
@@ -383,18 +294,22 @@ void _EF_::EyeFinder::calculatePupils(cv::Mat src, std::vector<std::pair<long, l
 //  26, 27 = x, y coordinates of right eye center (timm)
 //  28-29 = face angles (another code)
 void _EF_::EyeFinder::writeFacialFeaturesToShm(
-    const std::vector<std::pair<long, long>> &facial_features_vec) {
+    const std::vector<long> &facial_features_vec) {
     int i = 0;
     sem_wait(sem);
 
-    for (const auto pr : facial_features_vec) {
-        long x = pr.first, y = pr.second;
-        memcpy(shared_memory+sizeof(long)*i, &x, sizeof(long));
-        memcpy(shared_memory+sizeof(long)*(i+1), &y, sizeof(long));
-        i+=2;
+    // add an ID to the frame first
+    memcpy(shared_memory+sizeof(long)*i, &frame_id, sizeof(long));
+    i = 1;
+
+    // now copy every value in vec over
+    for (const auto num : facial_features_vec) {
+        memcpy(shared_memory+sizeof(long)*i, &num, sizeof(long));
+        i++;
     }
 
     sem_post(sem);
+    frame_id = (frame_id + 1) % 100;
 }
 
 

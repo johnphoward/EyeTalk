@@ -4,7 +4,7 @@ import atexit
 import os
 import subprocess as sp
 from time import sleep
-from eyefinderreader import EyeFinderReader
+from ipc_reader import IPCReader
 
 
 class GazeDetector:
@@ -37,7 +37,7 @@ class GazeDetector:
         """
         Clean up the semaphore, shared memory, and kill the eye finder process
         """
-        with EyeFinderReader() as reader:
+        with IPCReader() as reader:
             reader.clean()
         self.cpp_proc.kill()
 
@@ -47,7 +47,7 @@ class GazeDetector:
         Read an image from the video capture device and return the extracted features of the image
         :return: a ndarray of shape(30) full of numerical features
         """
-        with EyeFinderReader() as reader:
+        with IPCReader() as reader:
             return np.asarray(reader.read())
 
     @staticmethod

@@ -7,13 +7,6 @@ else
   cd build && make -j && cd ..
 fi
 
-if [ ! -f "./build/shape_predictor_68_face_landmarks.dat" ]; then
-  cd build && \
-  wget http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2 && \
-  bzip2 -d shape_predictor_68_face_landmarks.dat.bz2 && \
-  cd ..
-fi
-
 # cd build && ./eyefinder
 
 # if [[ "$OSTYPE" == "linux-gnu" ]]; then
