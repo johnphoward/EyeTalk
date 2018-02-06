@@ -341,15 +341,10 @@ void _EF_::EyeFinder::calculatePupilsEL(
   int real_rightPupil_x = rightPupil.x + roi_r.x;
   int real_rightPupil_y = rightPupil.y + roi_r.y;
 
-  // facial_features_vec.push_back((long)real_leftPupil_x);
-  // facial_features_vec.push_back((long)real_leftPupil_y);
-  // facial_features_vec.push_back((long)real_rightPupil_x);
-  // facial_features_vec.push_back((long)real_rightPupil_y);
-
-  facial_features_vec.push_back((long)-777);
-  facial_features_vec.push_back((long)-777);
-  facial_features_vec.push_back((long)-777);
-  facial_features_vec.push_back((long)-777);
+  facial_features_vec.push_back((long)real_leftPupil_x);
+  facial_features_vec.push_back((long)real_leftPupil_y);
+  facial_features_vec.push_back((long)real_rightPupil_x);
+  facial_features_vec.push_back((long)real_rightPupil_y);
 
 #if DEBUG_TB
   cv::circle(temp, cv::Point(real_leftPupil_x, real_leftPupil_y), 1,
