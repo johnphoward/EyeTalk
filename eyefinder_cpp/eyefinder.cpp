@@ -116,7 +116,7 @@ int _EF_::EyeFinder::start(void) {
         preCalculationPoints(facial_features_vec, shapes);
 
         // Find the face angle + pupils
-        calculateFaceAngles();
+        calculateFaceAngles(shapes, facial_features_vec);
 
         calculatePupils(roi_l_mat, facial_features_vec);
         calculatePupils(roi_r_mat, facial_features_vec);
@@ -214,7 +214,42 @@ void _EF_::EyeFinder::preCalculationPoints(
 
 // *****
 // calculateFaceAngles()
-void _EF_::EyeFinder::calculateFaceAngles(void) {usleep(100);}
+void _EF_::EyeFinder::calculateFaceAngles(const std::vector<dlib::full_object_detection> &shapes,
+                                          std::vector<long> &facial_features_vec) {
+  auto left_cheek = shapes[0].part(1);
+  auto right_cheek = shapes[0].part(16);
+  auto nose_center = shapes[0].part(33);
+
+  float face_width = right_cheek.x() - left_cheek.x();
+  float nose_length = face_width * 0.25;
+
+  float true_center_nose_x = left_cheek.x() + face_width / 2.0;
+  float nose_x_offset = nose_center.x() - true_center_nose_x;
+
+
+  float theta = 0.0;
+  if (nose_x_offset != 0.0) {
+    float angle = atan(nose_length / std::abs(nose_x_offset));
+
+    std::cout << "angle: " << angle << std::endl;
+    theta = (90 - angle * (180.0 / M_PI));
+    std::cout << "theta: " << theta << std::endl;
+    if (signbit(nose_x_offset))
+      theta *= -1;
+  }
+
+
+  float vertical_cheek_offset = right_cheek.y() - left_cheek.y();
+  float angle = atan(std::abs(vertical_cheek_offset) / face_width);
+  float alpha = angle * (180.00 / M_PI);
+  if (signbit(vertical_cheek_offset))
+      alpha *= -1;
+
+  // TODO: handle types for theta and alpha
+  facial_features_vec.push_back(theta);
+  facial_features_vec.push_back(alpha);
+
+}
 
 // *****
 // calculatePupils() a.k.a. Timm-Barth Algorithm
@@ -307,6 +342,8 @@ void _EF_::EyeFinder::writeFacialFeaturesToShm(
         memcpy(shared_memory+sizeof(long)*i, &num, sizeof(long));
         i++;
     }
+
+    // TODO: check if implementation has to change to represent face angles as floats
 
     sem_post(sem);
     frame_id = (frame_id + 1) % 100;

@@ -29,6 +29,10 @@ class Example(QGraphicsView):
 
     def initView(self):
         self.gaze = GazeDetector()
+
+        if not self.gaze.active:
+            app.quit()
+
         self.showFullScreen()
 
         ag = QDesktopWidget().availableGeometry()

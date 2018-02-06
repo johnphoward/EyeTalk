@@ -14,6 +14,8 @@ class IPCReader:
         self.sem = posix_ipc.Semaphore("/capstone")
         return self
 
+    # TODO: interpret face angles as floats instead of longs
+
     def bytes_to_longs(self, bstr):
         tmp = [int.from_bytes(bstr[i * self.sizeoflong:(i + 1) * self.sizeoflong], byteorder='little')
                for i in range(self.elements_in_vector)]

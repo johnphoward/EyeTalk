@@ -14,6 +14,7 @@
 #include <tuple>
 #include <utility>
 #include <vector>
+#include <cmath>
 
 // C headers
 // link with -lpthread
@@ -79,7 +80,8 @@ namespace _EF_ {
           void
           preCalculationPoints(std::vector<long> &facial_features_vec,
                                const std::vector<dlib::full_object_detection> &shapes);
-          void calculateFaceAngles(void);
+          void calculateFaceAngles( const std::vector<dlib::full_object_detection> &shapes,
+                                    std::vector<long> &facial_features_vec);
           void calculatePupils(cv::Mat src,
                                std::vector<long> &facial_features_vec);
           void writeFacialFeaturesToShm(
